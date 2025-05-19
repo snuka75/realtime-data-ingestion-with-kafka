@@ -1,0 +1,119 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import *
+import pandas as pd
+import joblib
+from datetime import datetime
+from pathlib import Path
+import os
+
+# ✅ Load trained model
+model = joblib.load("rf_model.pkl")
+
+# ✅ Define schema matching Kafka messages
+schema = StructType([
+    StructField("dur", DoubleType()),
+    StructField("proto", StringType()),
+    StructField("service", StringType()),
+    StructField("state", StringType()),
+    StructField("spkts", IntegerType()),
+    StructField("dpkts", IntegerType()),
+    StructField("sbytes", IntegerType()),
+    StructField("dbytes", IntegerType()),
+    StructField("rate", DoubleType()),
+    StructField("sttl", IntegerType()),
+    StructField("dttl", IntegerType()),
+    StructField("sload", DoubleType()),
+    StructField("dload", DoubleType()),
+    StructField("sloss", IntegerType()),
+    StructField("dloss", IntegerType()),
+    StructField("sinpkt", DoubleType()),
+    StructField("dinpkt", DoubleType()),
+    StructField("sjit", DoubleType()),
+    StructField("djit", DoubleType()),
+    StructField("swin", IntegerType()),
+    StructField("stcpb", IntegerType()),
+    StructField("dtcpb", IntegerType()),
+    StructField("dwin", IntegerType()),
+    StructField("tcprtt", DoubleType()),
+    StructField("synack", DoubleType()),
+    StructField("ackdat", DoubleType()),
+    StructField("smean", DoubleType()),
+    StructField("dmean", DoubleType()),
+    StructField("trans_depth", IntegerType()),
+    StructField("response_body_len", IntegerType()),
+    StructField("ct_srv_src", IntegerType()),
+    StructField("ct_state_ttl", IntegerType()),
+    StructField("ct_dst_ltm", IntegerType()),
+    StructField("ct_src_dport_ltm", IntegerType()),
+    StructField("ct_dst_sport_ltm", IntegerType()),
+    StructField("ct_dst_src_ltm", IntegerType()),
+    StructField("is_ftp_login", IntegerType()),
+    StructField("ct_ftp_cmd", IntegerType()),
+    StructField("ct_flw_http_mthd", IntegerType()),
+    StructField("ct_src_ltm", IntegerType()),
+    StructField("ct_srv_dst", IntegerType()),
+    StructField("is_sm_ips_ports", IntegerType()),
+    StructField("srcip", StringType()),  # ✅ For GeoIP
+    StructField("label", IntegerType())  # Optional for evaluation
+])
+
+# ✅ Columns the model was trained on (must match exactly)
+expected_columns = [
+    'dur', 'proto', 'service', 'state', 'spkts', 'dpkts', 'sbytes', 'dbytes', 'rate',
+    'sttl', 'dttl', 'sload', 'dload', 'sloss', 'dloss', 'sinpkt', 'dinpkt', 'sjit', 'djit',
+    'swin', 'stcpb', 'dtcpb', 'dwin', 'tcprtt', 'synack', 'ackdat', 'smean', 'dmean',
+    'trans_depth', 'response_body_len', 'ct_srv_src', 'ct_state_ttl', 'ct_dst_ltm',
+    'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'is_ftp_login',
+    'ct_ftp_cmd', 'ct_flw_http_mthd', 'ct_src_ltm', 'ct_srv_dst', 'is_sm_ips_ports'
+]
+
+# ✅ Start Spark
+spark = SparkSession.builder \
+    .appName("RealTimeIntrusionDetection") \
+    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0") \
+    .getOrCreate()
+
+spark.sparkContext.setLogLevel("WARN")
+
+# ✅ Kafka Source
+df = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "network_logs") \
+    .load()
+
+parsed_df = df.selectExpr("CAST(value AS STRING)") \
+    .select(from_json(col("value"), schema).alias("data")).select("data.*")
+
+# ✅ Prediction logic
+output_file = "predictions.csv"
+
+def predict_batch(batch_df, _):
+    if not batch_df.isEmpty():
+        pdf = batch_df.toPandas().fillna(0)
+
+        # Label encode categorical fields
+        for col in pdf.select_dtypes(include="object").columns:
+            pdf[col] = pdf[col].astype("category").cat.codes
+
+        # Filter to model input
+        X = pdf[[col for col in expected_columns if col in pdf.columns]]
+        preds = model.predict(X)
+
+        # ✅ Add prediction and timestamp
+        pdf["prediction"] = preds
+        pdf["timestamp"] = datetime.now()
+
+        # ✅ Save full row with prediction
+        try:
+            file_exists = Path(output_file).exists()
+            pdf.to_csv(output_file, mode="a", index=False, header=not file_exists)
+            print(f"✅ Wrote {len(pdf)} rows to predictions.csv")
+        except Exception as e:
+            print(f"❌ Write error: {e}")
+    else:
+        print("⚠️ Empty batch")
+
+# ✅ Start streaming
+query = parsed_df.writeStream.foreachBatch(predict_batch).start()
+query.awaitTermination()
