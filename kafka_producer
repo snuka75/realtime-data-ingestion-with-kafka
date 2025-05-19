@@ -1,0 +1,23 @@
+from kafka import KafkaProducer
+import pandas as pd
+import json
+import time
+
+producer = KafkaProducer(
+    bootstrap_servers='localhost:9092',
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+df = pd.read_csv("UNSW_NB15_testing-set.csv")
+df = df.drop(columns=["attack_cat", "id"], errors="ignore")
+
+# Convert categorical to string
+for col in df.select_dtypes(include='object').columns:
+    df[col] = df[col].astype(str)
+
+for i, row in df.iterrows():
+    producer.send("network_logs", value=row.to_dict())
+    print(f"✅ Sent row {i}")
+    time.sleep(0.3)  # simulate real-time streaming
+
+print("✅ Finished streaming.")
