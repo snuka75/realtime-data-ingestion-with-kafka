@@ -6,15 +6,16 @@ This project implements a **real-time intrusion detection system (IDS)** using A
 
 ## 📁 Project Structure
 
+```text
 .
-├── kafka_producer.py # Sends simulated network traffic to Kafka
-├── spark_stream.py # Spark job to consume data and predict attacks
-├── train_model.py # Trains Random Forest model on UNSW-NB15 dataset
-├── UNSW_NB15_training-set.csv # Training dataset
-├── UNSW_NB15_testing-set.csv # Testing dataset
-├── zk-single-kafka-single.yml # Kafka + Zookeeper Docker Compose setup
-├── rf_model.pkl # Trained machine learning model
-└── README.md # Project documentation
+├── kafka_producer.py            # Sends simulated network traffic to Kafka
+├── spark_stream.py              # Spark job to consume data and predict attacks
+├── train_model.py               # Trains Random Forest model on UNSW-NB15 dataset
+├── UNSW_NB15_training-set.csv   # Training dataset
+├── UNSW_NB15_testing-set.csv    # Testing dataset
+├── zk-single-kafka-single.yml   # Kafka + Zookeeper Docker Compose setup
+├── rf_model.pkl                 # Trained machine learning model
+└── README.md                    # Project documentation
 
 
 ---
