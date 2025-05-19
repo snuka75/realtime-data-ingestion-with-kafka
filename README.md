@@ -1,147 +1,95 @@
-🛡️ Real-Time Intrusion Detection System (RTIDS)
-This project implements a Real-Time Intrusion Detection System that leverages machine learning to detect potential cyberattacks in streaming network traffic data. It uses Kafka for streaming, Spark Structured Streaming for real-time ML prediction, and Streamlit for dynamic visualization. The predictions are stored locally and optionally pushed to Amazon S3 for long-term storage or further analysis.
+# 🛡️ Real-Time Intrusion Detection System using Kafka, Spark, and Random Forest
 
-📊 Features
-✅ Real-time data ingestion using Kafka
+This project implements a **real-time intrusion detection system (IDS)** using Apache Kafka and Apache Spark Streaming. A trained Random Forest model detects potential cyber-attacks from live network traffic data. The system is scalable and modular for integration into larger cybersecurity pipelines.
 
-✅ Machine Learning classification using a trained Random Forest model
+---
 
-✅ Stream processing and prediction with PySpark
+## 📁 Project Structure
 
-✅ Interactive Streamlit dashboard with:
+.
+├── kafka_producer.py # Sends simulated network traffic to Kafka
+├── spark_stream.py # Spark job to consume data and predict attacks
+├── train_model.py # Trains Random Forest model on UNSW-NB15 dataset
+├── UNSW_NB15_training-set.csv # Training dataset
+├── UNSW_NB15_testing-set.csv # Testing dataset
+├── zk-single-kafka-single.yml # Kafka + Zookeeper Docker Compose setup
+├── rf_model.pkl # Trained machine learning model
+└── README.md # Project documentation
 
-Live prediction counts
 
-Time-based attack trends
+---
 
-Top attack protocols & services
+## ⚙️ Components Overview
 
-Feature distributions by class
+### ✅ Kafka Producer
+- Simulates real-time network logs by reading CSV rows and sending them to a Kafka topic (`network-logs`).
 
-Hour-of-day heatmaps
+### ✅ Model Training
+- Trains a Random Forest classifier using the UNSW-NB15 dataset.
+- Outputs a serialized model file (`rf_model.pkl`) used in Spark.
 
-Dynamic filters (protocol, hour, attack class)
+### ✅ Spark Streaming Consumer
+- Connects to the Kafka topic and applies the ML model in real time.
+- Outputs predictions (`Normal` or `Attack`) to the console or logs.
 
-✅ CSV export of predictions
+### ✅ Kafka + Zookeeper Setup
+- Dockerized setup using `zk-single-kafka-single.yml`.
+- Easily deploy Kafka and Zookeeper locally using Docker Compose.
 
-✅ Optional AWS S3 upload for persistent storage
+---
 
-📁 Project Structure
-python
-Copy
-Edit
-intrusion-detection-pipeline/
-├── kafka_producer.py         # Reads from test set and sends to Kafka
-├── spark_stream.py           # Spark job to predict and write to CSV
-├── dashboard.py              # Streamlit dashboard
-├── train_model.py            # ML training pipeline (RandomForest)
-├── rf_model.pkl              # Trained ML model
-├── predictions.csv           # Output predictions (generated dynamically)
-├── UNSW_NB15_training-set.csv
-├── UNSW_NB15_testing-set.csv
-├── zk-single-kafka-single.yml  # Docker Compose config
-└── README.md
-⚙️ Technologies Used
-Apache Kafka – Real-time data streaming
+## 📦 Requirements
 
-Apache Spark (Structured Streaming) – Streaming pipeline and batch inference
-
-Scikit-learn – ML model (Random Forest Classifier)
-
-Streamlit – Real-time interactive dashboard
-
-Pandas, Matplotlib, Altair – Data processing & plotting
-
-AWS S3 – Cloud-based storage (optional)
-
+- Python 3.7+
+- Apache Spark 3.x
+- Docker & Docker Compose
+- Python Libraries:
+  ```bash
+  pip install pandas scikit-learn joblib kafka-python pyspark
 🚀 Getting Started
-1. Clone the Repo
-bash
-Copy
-Edit
-git clone https://github.com/yourusername/intrusion-detection-pipeline.git
-cd intrusion-detection-pipeline
-2. Setup Virtual Environment
-bash
-Copy
-Edit
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-Ensure pyspark, kafka-python, streamlit, boto3, pandas, scikit-learn, altair are in requirements.txt
+- Clone the Repository
 
-3. Start Kafka and Zookeeper
-bash
-Copy
-Edit
+git clone https://github.com/snuka75/realtime-data-ingestion-with-kafka.git
+cd kafka-intrusion-detection
+
+- Start Kafka and Zookeeper
+
 docker-compose -f zk-single-kafka-single.yml up
-4. Train the Model (Optional)
-bash
-Copy
-Edit
+
+- Train the Machine Learning Model
+   
 python train_model.py
-5. Start the Kafka Producer
-bash
-Copy
-Edit
+  
+- Start Kafka Producer
+
 python kafka_producer.py
-6. Run Spark Streaming Job
-bash
-Copy
-Edit
-python spark_stream.py
-7. Launch Streamlit Dashboard
-bash
-Copy
-Edit
-streamlit run dashboard.py
-🌐 Optional: Store in AWS S3
-To save predictions to Amazon S3:
 
-Set your AWS credentials in environment variables:
+- Start Spark Consumer
 
-bash
-Copy
-Edit
-export AWS_ACCESS_KEY_ID=your_key
-export AWS_SECRET_ACCESS_KEY=your_secret
-export AWS_DEFAULT_REGION=us-east-2
-Update the S3 upload logic in spark_stream.py:
+spark-submit spark_stream.py
 
-python
-Copy
-Edit
-import boto3
+🧠 Dataset Used
 
-s3 = boto3.client("s3")
-s3.upload_file("predictions.csv", "your-s3-bucket-name", "predictions.csv")
-📈 Sample Dashboard Preview
+UNSW-NB15 Dataset
 
-📌 Insights Available
-📊 Total and real-time prediction counts
+Captures 49 features related to network flow: protocol, packet counts, TTL, state, etc.
 
-⏰ Hour-of-day attack heatmaps
+Labels: Normal vs Attack
 
-⚠️ Alert spikes in attack activity
+📊 Sample Output
+[2025-05-19 12:00:01] Prediction: NORMAL
+[2025-05-19 12:00:02] Prediction: ATTACK
 
-📡 Protocols and services used in attacks
+Future Enhancements
+Integrate real-time dashboards using Streamlit or Grafana
 
-🔍 Boxplots of key feature distributions
+Add email/SMS alerts for detected attacks
 
-📋 Future Improvements
-GeoIP location visualizations
+Model interpretability using SHAP or LIME
 
-Email/SMS alerts on attack surges
+Dockerize the entire pipeline for deployment
 
-Integration with security monitoring tools (e.g., ELK stack)
+🤝 Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss your proposed changes.
 
-Real-time streaming to Redshift, BigQuery
-
-👩‍💻 Contributors
-Samhitha Nuka – Data Science and ML Implementation
-
-You can contribute by opening a pull request or reporting issues!
-
-📄 License
-This project is licensed under the MIT License.
 
