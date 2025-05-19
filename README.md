@@ -6,7 +6,7 @@ This project implements a **real-time intrusion detection system (IDS)** using A
 
 ## 📁 Project Structure
 
-```text
+
 .
 ├── kafka_producer.py            # Sends simulated network traffic to Kafka
 ├── spark_stream.py              # Spark job to consume data and predict attacks
