@@ -55,19 +55,19 @@ cd kafka-intrusion-detection
 
 - Start Kafka and Zookeeper
 
-docker-compose -f zk-single-kafka-single.yml up
+   docker-compose -f zk-single-kafka-single.yml up
 
 - Train the Machine Learning Model
    
-python train_model.py
+    python train_model.py
   
 - Start Kafka Producer
 
-python kafka_producer.py
+    python kafka_producer.py
 
 - Start Spark Consumer
 
-spark-submit spark_stream.py
+   spark-submit spark_stream.py
 
 🧠 Dataset Used
 
@@ -78,10 +78,12 @@ Captures 49 features related to network flow: protocol, packet counts, TTL, stat
 Labels: Normal vs Attack
 
 📊 Sample Output
+```
 [2025-05-19 12:00:01] Prediction: NORMAL
 [2025-05-19 12:00:02] Prediction: ATTACK
-
+```
 Future Enhancements
+
 Integrate real-time dashboards using Streamlit or Grafana
 
 Add email/SMS alerts for detected attacks
